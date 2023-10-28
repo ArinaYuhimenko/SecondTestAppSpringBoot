@@ -10,6 +10,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 @Data
 @Builder
 @NoArgsConstructor
@@ -23,8 +24,9 @@ public class Request {
     @NotBlank(message = "Уникальный идентификатор операции обязателен")
     @Size(max = 32, message = "Уникальный идентификатор операции должен быть не более 32 символов")
     private String operationUid;
+    @JsonDeserialize(using = SystemNameDeserializer.class)
+    private Systems systemName;
 
-    private String systemName;
     @NotBlank(message = "Время создания сообщения обязательно")
     private String systemTime;
 
@@ -35,4 +37,18 @@ public class Request {
     private int templateId;
     private int productCode;
     private int smsCode;
+    @Override
+    public String toString() {
+        return "{" +
+                "uid=' " +uid + '\'' +
+                ", operationUid=' " + operationUid + '\'' +
+                ", systemName=' " + systemName + '\'' +
+                ", systemTime=' " + systemTime + '\'' +
+                ", source=' " + source + '\'' +
+                ", communicationId=' " + communicationId + '\'' +
+                ", templateId=' " + templateId + '\'' +
+                ", productCode=' " + productCode + '\'' +
+                ", smsCode=' " + smsCode + '\'' +
+                '}';
+    }
 }
