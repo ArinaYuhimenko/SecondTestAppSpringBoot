@@ -1,6 +1,8 @@
 package ru.yuhimenko.MySecondTestAppSpringBoot.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -9,53 +11,75 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yuhimenko.MySecondTestAppSpringBoot.exception.UnsupportedCodeException;
 import ru.yuhimenko.MySecondTestAppSpringBoot.exception.ValidationFailedException;
-import ru.yuhimenko.MySecondTestAppSpringBoot.model.Request;
-import ru.yuhimenko.MySecondTestAppSpringBoot.model.Response;
+import ru.yuhimenko.MySecondTestAppSpringBoot.model.*;
+import ru.yuhimenko.MySecondTestAppSpringBoot.service.ModifyResponseService;
 import ru.yuhimenko.MySecondTestAppSpringBoot.service.ValidationService;
+import ru.yuhimenko.MySecondTestAppSpringBoot.util.DateTimeUtil;
 
 import javax.validation.Valid;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 
+@Slf4j
 @RestController
 public class MyController {
     private final ValidationService validationService;
+    private final ModifyResponseService modifyResponseService;
 
     @Autowired
-    public MyController(ValidationService validationService) {
+    public MyController(ValidationService validationService,
+                        @Qualifier("ModifySystemTimeResponseService") ModifyResponseService modifyResponseService) {
         this.validationService = validationService;
+        this.modifyResponseService = modifyResponseService;
     }
 
     @PostMapping(value = "/feedback")
     public ResponseEntity<Response> feedback(@Valid @RequestBody Request request,
                                              BindingResult bindingResult) {
 
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        log.info("request: {}", request);
 
         Response response = Response.builder()
                 .uid(request.getUid())
                 .operationUid(request.getOperationUid())
-                .systemTime(simpleDateFormat.format(new Date()))
-                .code("success")
-                .errorCode("")
-                .errorMessage("")
+                .systemTime(DateTimeUtil.getCustomFormat().format(new Date()))
+                .code(Codes.SUCCESS)
+                .errorCode(ErrorCodes.EMPTY)
+                .errorMessage(ErrorMessages.EMPTY)
                 .build();
+
+        log.info("response: {}", response);
         try {
-            if (request.getUid().equals("123")) {
-                throw new UnsupportedCodeException("Unsupported uid");
+            if (Objects.equals(request.getUid(), "123")) {
+                throw new UnsupportedCodeException("Uid = 123 unsupported");
             }
             validationService.isValid(bindingResult);
         } catch (ValidationFailedException e) {
-            response.setCode("failed");
-            response.setErrorCode("ValidationException");
-            response.setErrorMessage("Ошибка валидации");
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("error: {}", e.getMessage());
+            response.setCode(Codes.FAILED);
+            response.setErrorCode(ErrorCodes.VALIDATION_EXCEPTION);
+            response.setErrorMessage(ErrorMessages.VALIDATION);
+            log.info("response: {}", response);
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         } catch (UnsupportedCodeException e) {
-            response.setCode("failed");
-            response.setErrorCode("UnsupportedCodeException");
-            response.setErrorMessage("Неподдерживаемый код");
+            log.error("error: {}", e.getMessage());
+            response.setCode(Codes.FAILED);
+            response.setErrorCode(ErrorCodes.UNSUPPORTED_EXCEPTION);
+            response.setErrorMessage(ErrorMessages.UNSUPPORTED);
+            log.info("response: {}", response);
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            log.error("error: {}", e.getMessage());
+            response.setCode(Codes.FAILED);
+            response.setErrorCode(ErrorCodes.UNKNOWN_EXCEPTION);
+            response.setErrorMessage(ErrorMessages.UNKNOWN);
+            log.info("response: {}", response);
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        modifyResponseService.modify(response);
+        log.info("response: {}", response);
+
+        return new ResponseEntity<>(modifyResponseService.modify(response), HttpStatus.OK);
     }
 }
