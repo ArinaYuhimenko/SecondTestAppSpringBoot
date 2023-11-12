@@ -22,7 +22,6 @@ import ru.yuhimenko.MySecondTestAppSpringBoot.service.ValidationService;
 import ru.yuhimenko.MySecondTestAppSpringBoot.util.DateTimeUtil;
 
 import javax.validation.Valid;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -59,6 +58,7 @@ public class MyController {
                 .build();
 
         log.info("response: {}", response);
+
         try {
             if (Objects.equals(request.getUid(), "123")) {
                 throw new UnsupportedCodeException("Uid = 123 unsupported");
